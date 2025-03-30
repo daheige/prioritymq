@@ -30,7 +30,11 @@ func New(brokers []string, opts ...Option) (mq.MQ, error) {
 		producerTimeout:            10 * time.Second,
 		logger:                     mq.DummyLogger,
 		dialTimeout:                30 * time.Second,
+		version:                    sarama.V2_2_0_0,
 		consumerOffsetsInitial:     sarama.OffsetNewest,
+		consumerBalanceStrategies: []sarama.BalanceStrategy{
+			sarama.NewBalanceStrategyRange(),
+		},
 	}
 
 	for _, o := range opts {
@@ -224,26 +228,29 @@ func (k *kafkaImpl) gracefulStop(ctx context.Context) {
 
 func initClient(o Options) (sarama.Client, error) {
 	// kafka sarama config
-	config := sarama.NewConfig()
-	config.Net.DialTimeout = o.dialTimeout
-	config.Producer.Return.Successes = true
-	config.Producer.Return.Errors = true
-	config.Producer.Timeout = o.producerTimeout
+	conf := sarama.NewConfig()
+	conf.Version = o.version
+	conf.Net.DialTimeout = o.dialTimeout
+	conf.Producer.Return.Successes = true
+	conf.Producer.Return.Errors = true
+	conf.Producer.Timeout = o.producerTimeout
 
 	// consumer config
-	config.Consumer.Return.Errors = true
-	config.Consumer.Offsets.AutoCommit.Enable = true
-	config.Consumer.Offsets.AutoCommit.Interval = o.consumerAutoCommitInterval
-	config.Consumer.Offsets.Initial = o.consumerOffsetsInitial
-	config.Consumer.Fetch.Default = 1024 * 1024
+	conf.Consumer.Return.Errors = true
+	conf.Consumer.Offsets.AutoCommit.Enable = true
+	conf.Consumer.Offsets.AutoCommit.Interval = o.consumerAutoCommitInterval
+	conf.Consumer.Offsets.Initial = o.consumerOffsetsInitial
+	conf.Consumer.Fetch.Default = 1024 * 1024
+	conf.Consumer.Group.Rebalance.GroupStrategies = o.consumerBalanceStrategies
+
 	if o.user != "" { // user/pwd auth
-		config.Net.SASL.Enable = true
-		config.Net.SASL.User = o.user
-		config.Net.SASL.Password = o.password
+		conf.Net.SASL.Enable = true
+		conf.Net.SASL.User = o.user
+		conf.Net.SASL.Password = o.password
 	}
 
 	// create kafka client
-	client, err := sarama.NewClient(o.brokers, config)
+	client, err := sarama.NewClient(o.brokers, conf)
 	if err != nil {
 		return nil, err
 	}

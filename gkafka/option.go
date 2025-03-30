@@ -3,6 +3,8 @@ package gkafka
 import (
 	"time"
 
+	"github.com/IBM/sarama"
+
 	"github.com/daheige/prioritymq"
 )
 
@@ -11,6 +13,10 @@ type Options struct {
 	brokers  []string // client connection address list
 	user     string   // user
 	password string   // password
+
+	// kafka version default:sarama.V2_2_0_0
+	// default version = 2.2.0
+	version sarama.KafkaVersion
 
 	// All three of the below configurations are similar to the
 	// `socket.timeout.ms` setting in JVM kafka. All of them default
@@ -34,6 +40,10 @@ type Options struct {
 
 	// logger
 	logger prioritymq.Logger
+
+	// consumer balance strategy
+	// default:sarama.NewBalanceStrategyRange range strategy
+	consumerBalanceStrategies []sarama.BalanceStrategy
 }
 
 // Option functional option for kafka options
@@ -57,6 +67,13 @@ func WithUser(user string) Option {
 func WithPassword(password string) Option {
 	return func(o *Options) {
 		o.password = password
+	}
+}
+
+// WithVersion 设置kafka版本
+func WithVersion(version sarama.KafkaVersion) Option {
+	return func(o *Options) {
+		o.version = version
 	}
 }
 
@@ -99,5 +116,12 @@ func WithConsumerAutoCommitInterval(t time.Duration) Option {
 func WithConsumerOffsetsInitial(d int64) Option {
 	return func(o *Options) {
 		o.consumerOffsetsInitial = d
+	}
+}
+
+// WithConsumerBalanceStrategies 设置consumer group balance strategy
+func WithConsumerBalanceStrategies(s ...sarama.BalanceStrategy) Option {
+	return func(o *Options) {
+		o.consumerBalanceStrategies = append(o.consumerBalanceStrategies, s...)
 	}
 }

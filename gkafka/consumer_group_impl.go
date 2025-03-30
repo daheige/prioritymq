@@ -85,6 +85,7 @@ func (c *consumerGroupHandler) startConsume(ctx context.Context, sess sarama.Con
 	defer mq.Recovery(c.logger)
 
 	// 启动优先级消费逻辑
+	// 在消费者处理逻辑中，按优先级顺序处理消息
 	for {
 		select {
 		case msg := <-c.highMsgChan: // 优先处理高优先级
