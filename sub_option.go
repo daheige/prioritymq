@@ -10,10 +10,12 @@ type SubscribeOptions struct {
 	Name string
 
 	// priority consumer buffer size
+	// default:1024
 	BufferSize int
 
 	// Commit the offset to the backend for kafka
 	// Note: calling Commit performs a blocking synchronous operation.
+	// default:false
 	CommitOffsetBlock bool
 }
 
